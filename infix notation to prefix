@@ -1,0 +1,133 @@
+#include <stdio.h>
+#include <string.h>
+#include <ctype.h>
+#include <stdlib.h>
+
+#define MAX 100
+
+// Stack structure to hold characters
+struct Stack {
+    int top;
+    int capacity;
+    char* array;
+};
+
+// Function to create a stack
+struct Stack* createStack(int capacity) {
+    struct Stack* stack = (struct Stack*)malloc(sizeof(struct Stack));
+    stack->top = -1;
+    stack->capacity = capacity;
+    stack->array = (char*)malloc(stack->capacity * sizeof(char));
+    return stack;
+}
+
+// Stack utility functions
+int isFull(struct Stack* stack) { return stack->top == stack->capacity - 1; }
+int isEmpty(struct Stack* stack) { return stack->top == -1; }
+void push(struct Stack* stack, char op) { if (!isFull(stack)) stack->array[++stack->top] = op; }
+char pop(struct Stack* stack) { return isEmpty(stack) ? '\0' : stack->array[stack->top--]; }
+char peek(struct Stack* stack) { return isEmpty(stack) ? '\0' : stack->array[stack->top]; }
+
+// Function to check if character is an operand (A-Z, a-z, or digits)
+int isOperand(char ch) { return isalnum(ch); }
+
+// Function to get precedence of operators
+int precedence(char ch) {
+    switch (ch) {
+        case '+':
+        case '-':
+            return 1;
+        case '*':
+        case '/':
+            return 2;
+        case '^':
+            return 3;
+    }
+    return -1;
+}
+
+// Function to reverse the string
+void reverse(char* exp) {
+    int length = strlen(exp);
+    for (int i = 0; i < length / 2; i++) {
+        char temp = exp[i];
+        exp[i] = exp[length - i - 1];
+        exp[length - i - 1] = temp;
+    }
+}
+
+// Function to change parentheses '(' to ')' and vice versa
+void changeParentheses(char* exp) {
+    for (int i = 0; exp[i]; i++) {
+        if (exp[i] == '(')
+            exp[i] = ')';
+        else if (exp[i] == ')')
+            exp[i] = '(';
+    }
+}
+
+// Function to convert infix to postfix
+void infixToPostfix(char* exp, char* result) {
+    struct Stack* stack = createStack(MAX);
+    int k = 0;
+
+    for (int i = 0; exp[i]; i++) {
+        // If operand, add to result
+        if (isOperand(exp[i]))
+            result[k++] = exp[i];
+        // If '(', push to stack
+        else if (exp[i] == '(')
+            push(stack, exp[i]);
+        // If ')', pop until '('
+        else if (exp[i] == ')') {
+            while (!isEmpty(stack) && peek(stack) != '(')
+                result[k++] = pop(stack);
+            pop(stack);  // Remove '(' from stack
+        }
+        // Operator encountered
+        else {
+            while (!isEmpty(stack) && precedence(exp[i]) <= precedence(peek(stack)))
+                result[k++] = pop(stack);
+            push(stack, exp[i]);
+        }
+    }
+
+    // Pop remaining operators
+    while (!isEmpty(stack))
+        result[k++] = pop(stack);
+
+    result[k] = '\0';  // End of result string
+    free(stack);       // Free stack memory
+}
+
+// Function to convert infix to prefix
+void infixToPrefix(char* infix, char* prefix) {
+    int length = strlen(infix);
+
+    // Step 1: Reverse the infix expression
+    reverse(infix);
+
+    // Step 2: Change parentheses
+    changeParentheses(infix);
+
+    // Step 3: Convert modified infix to postfix
+    char postfix[MAX];
+    infixToPostfix(infix, postfix);
+
+    // Step 4: Reverse the postfix expression to get the prefix expression
+    reverse(postfix);
+    strcpy(prefix, postfix);
+}
+
+int main() {
+    char infix[MAX], prefix[MAX];
+
+    printf("Enter an infix expression: ");
+    scanf("%s", infix);
+
+    infixToPrefix(infix, prefix);
+
+    printf("The prefix expression is: %s\n", prefix);
+
+    return 0;
+}
